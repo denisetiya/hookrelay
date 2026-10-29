@@ -2,3 +2,6 @@
 /.env
 *.log
 .DS_Store
+
+# Design notes are kept locally.
+/docs

@@ -1,0 +1,20 @@
+[package]
+name = "hookrelay-bin"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Hookrelay server, worker, and migration runner"
+
+[[bin]]
+name = "webhookd"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+dotenvy.workspace = true
+hookrelay-store.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: hookrelay
       POSTGRES_DB: hookrelay
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -19,7 +19,7 @@ services:
     image: redis:8-alpine
     command: ["redis-server", "--appendonly", "no"]
     ports:
-      - "6379:6379"
+      - "6380:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
