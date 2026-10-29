@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/core", "crates/store", "crates/sender", "crates/worker", "crates/bin"]
+members = ["crates/core", "crates/store", "crates/sender", "crates/worker", "crates/web", "crates/bin"]
 
 [workspace.package]
 version = "0.1.0"
@@ -13,6 +13,7 @@ hookrelay-core = { path = "crates/core" }
 hookrelay-store = { path = "crates/store" }
 hookrelay-sender = { path = "crates/sender" }
 hookrelay-worker = { path = "crates/worker" }
+hookrelay-web = { path = "crates/web" }
 
 anyhow = "1"
 axum = { version = "0.8", features = ["macros"] }

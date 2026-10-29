@@ -104,3 +104,21 @@ pub async fn ingest(pool: &sqlx::PgPool, input: IngestEvent<'_>) -> Result<Inges
         delivery_ids,
     })
 }
+
+pub async fn find(
+    pool: &sqlx::PgPool,
+    tenant_id: Uuid,
+    id: Uuid,
+) -> Result<Option<Event>, StoreError> {
+    let event = sqlx::query_as::<_, Event>(
+        "select id, tenant_id, type, payload, idempotency_key, created_at
+         from events
+         where tenant_id = $1 and id = $2",
+    )
+    .bind(tenant_id)
+    .bind(id)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(event)
+}
