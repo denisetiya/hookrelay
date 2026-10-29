@@ -75,3 +75,22 @@ pub async fn ingest(
     .await
     .unwrap()
 }
+
+pub async fn publish(
+    pool: &sqlx::PgPool,
+    tenant_id: uuid::Uuid,
+    event_type: &str,
+) -> hookrelay_store::events::Ingested {
+    hookrelay_store::events::ingest(
+        pool,
+        hookrelay_store::events::IngestEvent {
+            id: uuid::Uuid::now_v7(),
+            tenant_id,
+            event_type,
+            payload: &serde_json::json!({"ok": true}),
+            idempotency_key: None,
+        },
+    )
+    .await
+    .unwrap()
+}

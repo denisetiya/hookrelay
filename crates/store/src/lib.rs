@@ -1,5 +1,6 @@
 pub mod api_keys;
 pub mod db;
+pub mod deliveries;
 pub mod endpoints;
 pub mod error;
 pub mod events;
