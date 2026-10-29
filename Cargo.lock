@@ -859,14 +859,17 @@ dependencies = [
 name = "hookrelay-worker"
 version = "0.1.0"
 dependencies = [
+ "axum",
  "chrono",
  "hookrelay-core",
  "hookrelay-sender",
  "hookrelay-store",
+ "rand 0.8.8",
  "serde_json",
  "sqlx",
  "testcontainers-modules",
  "tokio",
+ "tokio-util",
  "tracing",
  "uuid",
 ]

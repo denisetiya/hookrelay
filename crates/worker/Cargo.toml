@@ -10,12 +10,15 @@ description = "Delivery worker for Hookrelay"
 chrono.workspace = true
 hookrelay-core.workspace = true
 hookrelay-sender.workspace = true
+rand.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true
 tokio.workspace = true
+tokio-util.workspace = true
 tracing.workspace = true
 uuid.workspace = true
 
 [dev-dependencies]
+axum.workspace = true
 hookrelay-store.workspace = true
 testcontainers-modules = { version = "0.11", features = ["postgres"] }

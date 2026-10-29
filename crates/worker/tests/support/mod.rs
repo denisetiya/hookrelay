@@ -64,3 +64,18 @@ pub async fn publish(
     .await
     .unwrap()
 }
+
+pub async fn configure_endpoint(
+    pool: &sqlx::PgPool,
+    endpoint_id: Uuid,
+    url: &str,
+    max_attempts: i16,
+) {
+    sqlx::query("update endpoints set url = $2, max_attempts = $3 where id = $1")
+        .bind(endpoint_id)
+        .bind(url)
+        .bind(max_attempts)
+        .execute(pool)
+        .await
+        .unwrap();
+}
