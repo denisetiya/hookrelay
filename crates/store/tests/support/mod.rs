@@ -56,3 +56,22 @@ pub async fn create_endpoint_with_types(
     .await
     .unwrap()
 }
+
+pub async fn ingest(
+    pool: &sqlx::PgPool,
+    tenant_id: uuid::Uuid,
+    event_type: &str,
+) -> hookrelay_store::events::Ingested {
+    hookrelay_store::events::ingest(
+        pool,
+        hookrelay_store::events::IngestEvent {
+            id: uuid::Uuid::now_v7(),
+            tenant_id,
+            event_type,
+            payload: &serde_json::json!({}),
+            idempotency_key: None,
+        },
+    )
+    .await
+    .unwrap()
+}
