@@ -4,7 +4,9 @@
 
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHasher};
+use redis::aio::ConnectionManager;
 use testcontainers_modules::postgres::Postgres;
+use testcontainers_modules::redis::Redis;
 use testcontainers_modules::testcontainers::ContainerAsync;
 use testcontainers_modules::testcontainers::runners::AsyncRunner;
 use uuid::Uuid;
@@ -49,8 +51,25 @@ pub async fn seed_key(pool: &sqlx::PgPool) -> (Uuid, String) {
 }
 
 pub fn app(pool: sqlx::PgPool) -> axum::Router {
+    app_with_limiter(pool, hookrelay_web::rate_limit::RateLimiter::disabled())
+}
+
+pub fn app_with_limiter(
+    pool: sqlx::PgPool,
+    limiter: hookrelay_web::rate_limit::RateLimiter,
+) -> axum::Router {
     hookrelay_web::router(hookrelay_web::AppState {
         pool,
         allow_http_targets: true,
+        limiter,
     })
+}
+
+pub async fn test_redis() -> (ConnectionManager, ContainerAsync<Redis>) {
+    let container = Redis::default().start().await.unwrap();
+    let port = container.get_host_port_ipv4(6379).await.unwrap();
+    let client = redis::Client::open(format!("redis://127.0.0.1:{port}")).unwrap();
+    let manager = ConnectionManager::new(client).await.unwrap();
+
+    (manager, container)
 }

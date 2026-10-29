@@ -88,9 +88,11 @@ async fn bootstrap(cfg: &Config) -> anyhow::Result<()> {
 
 async fn serve(cfg: &Config) -> anyhow::Result<()> {
     let pool = hookrelay_store::db::connect(&cfg.database_url).await?;
+    let limiter = build_limiter(&cfg.redis_url).await;
     let state = hookrelay_web::AppState {
         pool,
         allow_http_targets: cfg.allow_private_targets,
+        limiter,
     };
     let app = hookrelay_web::router(state);
     let listener = tokio::net::TcpListener::bind(cfg.bind_addr).await?;
@@ -101,6 +103,24 @@ async fn serve(cfg: &Config) -> anyhow::Result<()> {
         .await?;
 
     Ok(())
+}
+
+async fn build_limiter(redis_url: &str) -> hookrelay_web::rate_limit::RateLimiter {
+    let client = match redis::Client::open(redis_url) {
+        Ok(client) => client,
+        Err(error) => {
+            tracing::warn!(error = %error, "invalid redis url; rate limiting disabled");
+            return hookrelay_web::rate_limit::RateLimiter::disabled();
+        }
+    };
+
+    match redis::aio::ConnectionManager::new(client).await {
+        Ok(connection) => hookrelay_web::rate_limit::RateLimiter::new(connection, 120, 2.0),
+        Err(error) => {
+            tracing::warn!(error = %error, "redis unavailable; rate limiting disabled");
+            hookrelay_web::rate_limit::RateLimiter::disabled()
+        }
+    }
 }
 
 async fn shutdown_signal() {

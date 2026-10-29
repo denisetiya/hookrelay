@@ -18,6 +18,7 @@ pub enum ConfigError {
 #[derive(Debug, Clone)]
 pub struct Config {
     pub database_url: String,
+    pub redis_url: String,
     pub bind_addr: SocketAddr,
     pub log_format: LogFormat,
     pub allow_private_targets: bool,
@@ -48,6 +49,7 @@ impl Config {
 
         Ok(Self {
             database_url: required("DATABASE_URL")?,
+            redis_url: required("REDIS_URL")?,
             bind_addr,
             log_format: if vars.get("LOG_FORMAT").map(String::as_str) == Some("json") {
                 LogFormat::Json

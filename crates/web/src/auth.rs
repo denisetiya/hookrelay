@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 use crate::AppState;
 use crate::error::AppError;
+use crate::rate_limit::RateDecision;
 
 #[derive(Debug, Clone, Copy)]
 pub struct TenantId(pub Uuid);
@@ -55,6 +56,18 @@ pub async fn require_api_key(
 
     if !valid {
         return Err(AppError::Unauthorized);
+    }
+
+    match state.limiter.check(prefix).await {
+        Ok(RateDecision::Allowed { .. }) => {}
+        Ok(RateDecision::Denied { retry_after }) => {
+            return Err(AppError::RateLimited(retry_after));
+        }
+        Err(error) => {
+            // Ingest availability matters more than strict limiting; the metric
+            // tracks that this path was taken.
+            tracing::warn!(error = %error, "rate limiter unavailable, allowing request");
+        }
     }
 
     request.extensions_mut().insert(TenantId(key.tenant_id));

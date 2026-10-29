@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::time::Duration;
 
 use axum::Json;
 use axum::http::StatusCode;
@@ -16,6 +17,8 @@ pub enum AppError {
     Validation(String),
     #[error("{0}")]
     Conflict(String),
+    #[error("rate limited")]
+    RateLimited(Duration),
     #[error(transparent)]
     Internal(#[from] anyhow::Error),
 }
@@ -49,6 +52,7 @@ struct ErrorDetail {
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
+        let mut retry_after = None;
         let (status, code, message) = match self {
             Self::Unauthorized => (
                 StatusCode::UNAUTHORIZED,
@@ -66,6 +70,15 @@ impl IntoResponse for AppError {
                 message.into(),
             ),
             Self::Conflict(message) => (StatusCode::CONFLICT, "conflict", message.into()),
+            Self::RateLimited(delay) => {
+                retry_after = Some(delay);
+
+                (
+                    StatusCode::TOO_MANY_REQUESTS,
+                    "rate_limited",
+                    Cow::Borrowed("rate limit exceeded"),
+                )
+            }
             Self::Internal(error) => {
                 tracing::error!(error = %error, "internal error");
 
@@ -77,12 +90,24 @@ impl IntoResponse for AppError {
             }
         };
 
-        (
+        let mut response = (
             status,
             Json(ErrorBody {
                 error: ErrorDetail { code, message },
             }),
         )
-            .into_response()
+            .into_response();
+
+        if let Some(delay) = retry_after {
+            let seconds = delay.as_secs().max(1).to_string();
+
+            if let Ok(value) = axum::http::HeaderValue::from_str(&seconds) {
+                response
+                    .headers_mut()
+                    .insert(axum::http::header::RETRY_AFTER, value);
+            }
+        }
+
+        response
     }
 }

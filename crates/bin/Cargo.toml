@@ -19,6 +19,7 @@ hex = "0.4"
 hookrelay-store.workspace = true
 hookrelay-web.workspace = true
 rand.workspace = true
+redis.workspace = true
 sqlx.workspace = true
 uuid.workspace = true
 thiserror.workspace = true

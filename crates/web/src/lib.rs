@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod error;
+pub mod rate_limit;
 pub mod routes;
 
 use axum::Router;
@@ -11,6 +12,7 @@ use axum::routing::{get, patch, post};
 pub struct AppState {
     pub pool: sqlx::PgPool,
     pub allow_http_targets: bool,
+    pub limiter: rate_limit::RateLimiter,
 }
 
 pub fn router(state: AppState) -> Router {
