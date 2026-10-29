@@ -856,6 +856,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "hookrelay-worker"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "hookrelay-core",
+ "hookrelay-sender",
+ "hookrelay-store",
+ "serde_json",
+ "sqlx",
+ "testcontainers-modules",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "http"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
