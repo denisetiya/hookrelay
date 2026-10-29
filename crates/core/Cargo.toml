@@ -1,0 +1,16 @@
+[package]
+name = "hookrelay-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Pure domain logic for Hookrelay: signing, backoff, SSRF classification"
+
+[dependencies]
+chrono.workspace = true
+hex.workspace = true
+hmac.workspace = true
+serde.workspace = true
+sha2.workspace = true
+subtle.workspace = true
+thiserror.workspace = true
