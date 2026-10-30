@@ -4,6 +4,8 @@ Webhook delivery service: accepts events, fans them out to subscriber endpoints,
 signs every request, retries failures with backoff, and keeps an auditable
 delivery log with replay.
 
+Full guide: [USAGE.md](USAGE.md).
+
 ## What it handles
 
 - At-least-once delivery with per-delivery idempotency keys
@@ -76,6 +78,7 @@ Each request carries:
 
 ```
 X-Hookrelay-Signature: v1,<unix-timestamp>,<hex-hmac>
+X-Hookrelay-Signature-Previous: v1,<unix-timestamp>,<hex-hmac>   (rotation only)
 X-Hookrelay-Id: <delivery-id>
 X-Hookrelay-Event: <event-id>
 X-Hookrelay-Attempt: <attempt-number>
@@ -83,7 +86,8 @@ Idempotency-Key: <delivery-id>
 ```
 
 The digest is HMAC-SHA256 over `<timestamp>.<body>`. Reject timestamps outside
-300 seconds. During rotation the previous secret stays valid for 24 hours.
+300 seconds. For 24 hours after rotation, the previous signature header is sent
+with the old secret so receivers can roll over without dropping deliveries.
 
 ## Dashboard
 
