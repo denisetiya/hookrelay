@@ -1,3 +1,18 @@
+x-app: &app
+  build: .
+  restart: unless-stopped
+  environment: &app-env
+    DATABASE_URL: postgres://hookrelay:hookrelay@postgres:5432/hookrelay
+    REDIS_URL: redis://redis:6379
+    HOOKRELAY_SESSION_SECRET: ${HOOKRELAY_SESSION_SECRET:?set HOOKRELAY_SESSION_SECRET}
+    RUST_LOG: ${RUST_LOG:-info}
+    LOG_FORMAT: ${LOG_FORMAT:-json}
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -26,5 +41,44 @@ services:
       timeout: 3s
       retries: 10
 
+  migrate:
+    <<: *app
+    command: ["migrate"]
+    restart: "no"
+
+  serve:
+    <<: *app
+    command: ["serve"]
+    environment:
+      <<: *app-env
+      BIND_ADDR: 0.0.0.0:8090
+    ports:
+      - "8090:8090"
+
+  worker-1:
+    <<: *app
+    command: ["worker", "--id", "worker-1"]
+
+  worker-2:
+    <<: *app
+    command: ["worker", "--id", "worker-2"]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      HOOKRELAY_DOMAIN: ${HOOKRELAY_DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - serve
+
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:

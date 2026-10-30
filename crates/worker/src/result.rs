@@ -130,6 +130,9 @@ pub async fn record_result(
 
     tx.commit().await?;
 
+    metrics::counter!("hookrelay_deliveries_total", "status" => status.to_owned()).increment(1);
+    metrics::histogram!("hookrelay_delivery_latency_seconds").record(report.latency.as_secs_f64());
+
     Ok(match status {
         "succeeded" => FinalStatus::Succeeded,
         "dead" => FinalStatus::Dead,

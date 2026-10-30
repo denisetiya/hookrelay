@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Endpoints | Hookrelay{% endblock %}
+{% block content %}
+<h1>Endpoints</h1>
+
+{% if let Some(secret) = secret %}
+<div class="alert">
+  <strong>Signing secret, shown once:</strong>
+  <pre>{{ secret }}</pre>
+  Use it to verify <code>X-Hookrelay-Signature</code>.
+</div>
+{% endif %}
+{% if let Some(message) = error %}
+<div class="alert error">{{ message }}</div>
+{% endif %}
+
+<h2>Add endpoint</h2>
+<form method="post" action="/endpoints">
+  <div class="field">
+    <label for="url">URL</label>
+    <input id="url" name="url" type="url" required placeholder="https://example.com/hooks">
+  </div>
+  <div class="field">
+    <label for="ordering_mode">Ordering</label>
+    <select id="ordering_mode" name="ordering_mode">
+      <option value="endpoint">Per endpoint (serial)</option>
+      <option value="none">Unordered (parallel)</option>
+    </select>
+  </div>
+  <button class="primary" type="submit">Add endpoint</button>
+</form>
+
+<h2>Configured endpoints</h2>
+{% if endpoints.is_empty() %}
+<p class="muted">No endpoints yet.</p>
+{% else %}
+<table>
+  <thead><tr><th>URL</th><th>Status</th><th>Ordering</th><th>Events</th><th>Actions</th></tr></thead>
+  <tbody>
+    {% for endpoint in endpoints %}
+    <tr>
+      <td data-label="URL">{{ endpoint.url }}</td>
+      <td data-label="Status"><span class="badge {{ endpoint.status }}">{{ endpoint.status }}</span></td>
+      <td data-label="Ordering">{{ endpoint.ordering_mode }}</td>
+      <td data-label="Events">{{ endpoint.event_types }}</td>
+      <td data-label="Actions">
+        <form class="inline" method="post" action="/endpoints/{{ endpoint.id }}/toggle">
+          <button type="submit">{% if endpoint.status == "active" %}Pause{% else %}Resume{% endif %}</button>
+        </form>
+        <form class="inline" method="post" action="/endpoints/{{ endpoint.id }}/rotate">
+          <button type="submit">Rotate secret</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

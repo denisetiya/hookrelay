@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Deliveries | Hookrelay{% endblock %}
+{% block content %}
+<h1>Deliveries{% if status == "dead" %} (dead letters){% endif %}</h1>
+
+<form method="get" action="/deliveries" class="inline">
+  <label for="status" class="muted">Status</label>
+  <select id="status" name="status">
+    <option value="" {% if status.is_empty() %}selected{% endif %}>All</option>
+    <option value="pending" {% if status == "pending" %}selected{% endif %}>Pending</option>
+    <option value="in_flight" {% if status == "in_flight" %}selected{% endif %}>In flight</option>
+    <option value="retrying" {% if status == "retrying" %}selected{% endif %}>Retrying</option>
+    <option value="succeeded" {% if status == "succeeded" %}selected{% endif %}>Succeeded</option>
+    <option value="dead" {% if status == "dead" %}selected{% endif %}>Dead</option>
+  </select>
+  <button type="submit">Filter</button>
+</form>
+
+{% if deliveries.is_empty() %}
+<p class="muted">No deliveries yet.</p>
+{% else %}
+<table>
+  <thead><tr><th>Event</th><th>Endpoint</th><th>Status</th><th>Attempt</th><th>HTTP</th><th>Actions</th></tr></thead>
+  <tbody>
+    {% for row in deliveries %}
+    {% include "partials/delivery_row.html" %}
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

@@ -67,7 +67,10 @@ impl Worker {
                 _ = reap.tick() => {
                     match reap_expired(&self.pool).await {
                         Ok(0) => {}
-                        Ok(count) => tracing::warn!(deliveries = count, "reaped expired leases"),
+                        Ok(count) => {
+                            metrics::counter!("hookrelay_lease_expired_total").increment(count);
+                            tracing::warn!(deliveries = count, "reaped expired leases");
+                        }
                         Err(error) => tracing::error!(error = %error, "lease reaper failed"),
                     }
                 }
@@ -82,6 +85,7 @@ impl Worker {
     }
 
     pub async fn run_once(&self) -> Result<usize, sqlx::Error> {
+        let claim_started = std::time::Instant::now();
         let claimed = claim(
             &self.pool,
             &self.config.worker_id,
@@ -89,6 +93,17 @@ impl Worker {
             self.config.lease,
         )
         .await?;
+        metrics::histogram!("hookrelay_claim_batch_seconds")
+            .record(claim_started.elapsed().as_secs_f64());
+
+        if let Ok(depth) = sqlx::query_scalar::<_, i64>(
+            "select count(*) from deliveries where status in ('pending', 'retrying')",
+        )
+        .fetch_one(&self.pool)
+        .await
+        {
+            metrics::gauge!("hookrelay_queue_depth").set(depth as f64);
+        }
 
         let count = claimed.len();
         if count == 0 {

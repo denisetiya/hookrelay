@@ -16,11 +16,16 @@ argon2 = "0.5"
 axum.workspace = true
 dotenvy.workspace = true
 hex = "0.4"
+metrics = "0.24"
+metrics-exporter-prometheus = { version = "0.16", default-features = false }
+hookrelay-sender.workspace = true
 hookrelay-store.workspace = true
 hookrelay-web.workspace = true
+hookrelay-worker.workspace = true
 rand.workspace = true
 redis.workspace = true
 sqlx.workspace = true
+tokio-util.workspace = true
 uuid.workspace = true
 thiserror.workspace = true
 tokio.workspace = true

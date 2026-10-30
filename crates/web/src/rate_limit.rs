@@ -70,6 +70,18 @@ impl RateLimiter {
         })
     }
 
+    pub async fn ping(&self) -> Result<(), redis::RedisError> {
+        let Some(connection) = &self.redis else {
+            return Ok(());
+        };
+
+        let mut connection = connection.clone();
+        redis::cmd("PING")
+            .query_async::<String>(&mut connection)
+            .await
+            .map(|_| ())
+    }
+
     /// Resets a bucket. Used by tests and by the admin path when a key is rotated.
     pub async fn reset(&self, key: &str) -> Result<(), redis::RedisError> {
         let Some(redis) = &self.redis else {

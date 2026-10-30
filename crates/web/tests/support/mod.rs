@@ -62,6 +62,8 @@ pub fn app_with_limiter(
         pool,
         allow_http_targets: true,
         limiter,
+        session_secret: b"0123456789abcdef0123456789abcdef".to_vec(),
+        metrics: None,
     })
 }
 
@@ -72,4 +74,58 @@ pub async fn test_redis() -> (ConnectionManager, ContainerAsync<Redis>) {
     let manager = ConnectionManager::new(client).await.unwrap();
 
     (manager, container)
+}
+
+pub async fn seed_delivery(pool: &sqlx::PgPool, tenant_id: Uuid) -> Uuid {
+    hookrelay_store::endpoints::create(
+        pool,
+        hookrelay_store::endpoints::NewEndpoint {
+            tenant_id,
+            url: "https://example.com/hooks",
+            description: None,
+            secret: b"0123456789abcdef0123456789abcdef",
+            event_types: &[],
+            ordering_mode: "endpoint",
+        },
+    )
+    .await
+    .unwrap();
+
+    let ingested = hookrelay_store::events::ingest(
+        pool,
+        hookrelay_store::events::IngestEvent {
+            id: Uuid::now_v7(),
+            tenant_id,
+            event_type: "invoice.paid",
+            payload: &serde_json::json!({"id": "in_1"}),
+            idempotency_key: None,
+        },
+    )
+    .await
+    .unwrap();
+
+    ingested.delivery_ids[0]
+}
+
+pub fn session_cookie(tenant_id: Uuid) -> String {
+    let value = hookrelay_web::session::issue(
+        b"0123456789abcdef0123456789abcdef",
+        tenant_id,
+        "abcdefghijkl",
+    );
+
+    format!("hr_session={value}")
+}
+
+pub fn app_with_metrics(
+    pool: sqlx::PgPool,
+    metrics: metrics_exporter_prometheus::PrometheusHandle,
+) -> axum::Router {
+    hookrelay_web::router(hookrelay_web::AppState {
+        pool,
+        allow_http_targets: true,
+        limiter: hookrelay_web::rate_limit::RateLimiter::disabled(),
+        session_secret: b"0123456789abcdef0123456789abcdef".to_vec(),
+        metrics: Some(metrics),
+    })
 }

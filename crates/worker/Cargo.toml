@@ -10,6 +10,7 @@ description = "Delivery worker for Hookrelay"
 chrono.workspace = true
 hookrelay-core.workspace = true
 hookrelay-sender.workspace = true
+metrics.workspace = true
 rand.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true

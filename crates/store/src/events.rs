@@ -122,3 +122,23 @@ pub async fn find(
 
     Ok(event)
 }
+
+pub async fn list(
+    pool: &sqlx::PgPool,
+    tenant_id: Uuid,
+    limit: i64,
+) -> Result<Vec<Event>, StoreError> {
+    let events = sqlx::query_as::<_, Event>(
+        "select id, tenant_id, type, payload, idempotency_key, created_at
+         from events
+         where tenant_id = $1
+         order by created_at desc
+         limit $2",
+    )
+    .bind(tenant_id)
+    .bind(limit)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(events)
+}

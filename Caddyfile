@@ -1,0 +1,4 @@
+{$HOOKRELAY_DOMAIN:localhost} {
+	encode zstd gzip
+	reverse_proxy serve:8090
+}

@@ -75,14 +75,14 @@ pub async fn require_api_key(
     Ok(next.run(request).await)
 }
 
-fn parse_key(token: &str) -> Option<(&str, &str)> {
+pub(crate) fn parse_key(token: &str) -> Option<(&str, &str)> {
     let rest = token.strip_prefix(KEY_SCHEME)?;
 
     rest.rsplit_once('_')
         .filter(|(prefix, secret)| !prefix.is_empty() && !secret.is_empty())
 }
 
-fn verify(hash: &str, secret: &str) -> bool {
+pub(crate) fn verify(hash: &str, secret: &str) -> bool {
     let Ok(parsed) = PasswordHash::new(hash) else {
         return false;
     };

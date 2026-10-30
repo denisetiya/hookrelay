@@ -168,3 +168,26 @@ pub async fn replay(
 
     Ok(row)
 }
+
+#[derive(Debug, Clone, Copy, sqlx::FromRow)]
+pub struct DeliveryCounts {
+    pub total: i64,
+    pub dead: i64,
+    pub retrying: i64,
+}
+
+pub async fn counts(pool: &sqlx::PgPool, tenant_id: Uuid) -> Result<DeliveryCounts, StoreError> {
+    let counts = sqlx::query_as::<_, DeliveryCounts>(
+        "select count(*) as total,
+                count(*) filter (where d.status = 'dead') as dead,
+                count(*) filter (where d.status = 'retrying') as retrying
+         from deliveries d
+         join endpoints e on e.id = d.endpoint_id
+         where e.tenant_id = $1",
+    )
+    .bind(tenant_id)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(counts)
+}

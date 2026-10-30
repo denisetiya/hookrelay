@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ event.event_type }} | Hookrelay{% endblock %}
+{% block content %}
+<h1>{{ event.event_type }}</h1>
+<p class="muted">Event <code>{{ event.id }}</code>, {{ event.created_at }}</p>
+
+<h2>Payload</h2>
+<pre>{{ payload }}</pre>
+{% endblock %}

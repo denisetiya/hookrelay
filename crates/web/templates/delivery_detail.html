@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Delivery {{ delivery.id }} | Hookrelay{% endblock %}
+{% block content %}
+<p><a href="/deliveries">&larr; All deliveries</a></p>
+<h1>{{ delivery.event_type }}</h1>
+<p class="muted">
+  <span class="badge {{ delivery.status }}">{{ delivery.status }}</span>
+  attempt {{ delivery.attempt }},
+  created {{ delivery.created_at }},
+  endpoint <code>{{ delivery.endpoint_url }}</code>
+</p>
+{% if delivery.last_status_code.is_some() %}
+<p>Last response: <strong>{{ delivery.last_status_code.unwrap() }}</strong></p>
+{% endif %}
+
+<h2>Attempts</h2>
+{% if attempts.is_empty() %}
+<p class="muted">No attempts recorded yet.</p>
+{% else %}
+<table>
+  <thead><tr><th>#</th><th>Started</th><th>HTTP</th><th>Latency</th><th>Error</th></tr></thead>
+  <tbody>
+    {% for attempt in attempts %}
+    <tr>
+      <td data-label="#">{{ attempt.attempt_no }}</td>
+      <td data-label="Started">{{ attempt.started_at }}</td>
+      <td data-label="HTTP">{% if let Some(code) = attempt.status_code %}{{ code }}{% else %}-{% endif %}</td>
+      <td data-label="Latency">{% if let Some(ms) = attempt.latency_ms %}{{ ms }} ms{% else %}-{% endif %}</td>
+      <td data-label="Error">{% if let Some(error) = attempt.error %}{{ error }}{% else %}-{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<h2>Event payload</h2>
+<pre>{{ payload }}</pre>
+{% endblock %}

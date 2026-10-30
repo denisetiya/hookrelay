@@ -19,6 +19,7 @@ pub enum ConfigError {
 pub struct Config {
     pub database_url: String,
     pub redis_url: String,
+    pub session_secret: String,
     pub bind_addr: SocketAddr,
     pub log_format: LogFormat,
     pub allow_private_targets: bool,
@@ -47,9 +48,17 @@ impl Config {
             .parse()
             .map_err(|_| ConfigError::Invalid { key: "BIND_ADDR" })?;
 
+        let session_secret = required("HOOKRELAY_SESSION_SECRET")?;
+        if session_secret.len() < 32 {
+            return Err(ConfigError::Invalid {
+                key: "HOOKRELAY_SESSION_SECRET",
+            });
+        }
+
         Ok(Self {
             database_url: required("DATABASE_URL")?,
             redis_url: required("REDIS_URL")?,
+            session_secret,
             bind_addr,
             log_format: if vars.get("LOG_FORMAT").map(String::as_str) == Some("json") {
                 LogFormat::Json
@@ -79,6 +88,10 @@ mod tests {
         let cfg = Config::from_iter(vars(&[
             ("DATABASE_URL", "postgres://localhost/hookrelay"),
             ("REDIS_URL", "redis://localhost:6379"),
+            (
+                "HOOKRELAY_SESSION_SECRET",
+                "0123456789abcdef0123456789abcdef",
+            ),
         ]))
         .unwrap();
 
@@ -99,6 +112,10 @@ mod tests {
         let err = Config::from_iter(vars(&[
             ("DATABASE_URL", "postgres://localhost/hookrelay"),
             ("REDIS_URL", "redis://localhost:6379"),
+            (
+                "HOOKRELAY_SESSION_SECRET",
+                "0123456789abcdef0123456789abcdef",
+            ),
             ("BIND_ADDR", "not-an-address"),
         ]))
         .unwrap_err();

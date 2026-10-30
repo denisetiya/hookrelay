@@ -3,8 +3,11 @@ mod config;
 use anyhow::Context;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHasher};
+use hookrelay_sender::{Sender, SenderConfig};
+use hookrelay_worker::{Worker, WorkerConfig};
 use rand::distributions::Alphanumeric;
 use rand::{Rng, RngCore};
+use tokio_util::sync::CancellationToken;
 use tracing_subscriber::EnvFilter;
 
 use crate::config::{Config, LogFormat};
@@ -22,6 +25,10 @@ async fn main() -> anyhow::Result<()> {
         "configuration loaded"
     );
 
+    let metrics_handle = metrics_exporter_prometheus::PrometheusBuilder::new()
+        .install_recorder()
+        .context("installing metrics recorder")?;
+
     let command = std::env::args()
         .nth(1)
         .unwrap_or_else(|| "serve".to_owned());
@@ -29,10 +36,8 @@ async fn main() -> anyhow::Result<()> {
     match command.as_str() {
         "migrate" => migrate(&cfg).await?,
         "bootstrap" => bootstrap(&cfg).await?,
-        "serve" => serve(&cfg).await?,
-        "worker" => {
-            anyhow::bail!("worker is implemented in a later task");
-        }
+        "serve" => serve(&cfg, metrics_handle).await?,
+        "worker" => run_worker(&cfg).await?,
         other => {
             anyhow::bail!(
                 "unknown command `{other}`; expected migrate, bootstrap, serve, or worker"
@@ -86,13 +91,18 @@ async fn bootstrap(cfg: &Config) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn serve(cfg: &Config) -> anyhow::Result<()> {
+async fn serve(
+    cfg: &Config,
+    metrics_handle: metrics_exporter_prometheus::PrometheusHandle,
+) -> anyhow::Result<()> {
     let pool = hookrelay_store::db::connect(&cfg.database_url).await?;
     let limiter = build_limiter(&cfg.redis_url).await;
     let state = hookrelay_web::AppState {
         pool,
         allow_http_targets: cfg.allow_private_targets,
         limiter,
+        session_secret: cfg.session_secret.as_bytes().to_vec(),
+        metrics: Some(metrics_handle),
     };
     let app = hookrelay_web::router(state);
     let listener = tokio::net::TcpListener::bind(cfg.bind_addr).await?;
@@ -101,6 +111,34 @@ async fn serve(cfg: &Config) -> anyhow::Result<()> {
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await?;
+
+    Ok(())
+}
+
+async fn run_worker(cfg: &Config) -> anyhow::Result<()> {
+    let pool = hookrelay_store::db::connect(&cfg.database_url).await?;
+    let sender = Sender::new(SenderConfig {
+        allow_private_targets: cfg.allow_private_targets,
+        ..SenderConfig::default()
+    });
+    let worker_id = flag_value("--id").unwrap_or_else(|| format!("worker-{}", std::process::id()));
+    let worker = Worker::new(
+        pool,
+        sender,
+        WorkerConfig {
+            worker_id,
+            ..WorkerConfig::default()
+        },
+    );
+
+    let token = CancellationToken::new();
+    let shutdown_token = token.clone();
+    tokio::spawn(async move {
+        shutdown_signal().await;
+        shutdown_token.cancel();
+    });
+
+    worker.run(token).await;
 
     Ok(())
 }
