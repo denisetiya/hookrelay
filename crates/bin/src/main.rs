@@ -37,7 +37,7 @@ async fn main() -> anyhow::Result<()> {
         "migrate" => migrate(&cfg).await?,
         "bootstrap" => bootstrap(&cfg).await?,
         "serve" => serve(&cfg, metrics_handle).await?,
-        "worker" => run_worker(&cfg).await?,
+        "worker" => run_worker(&cfg, metrics_handle).await?,
         other => {
             anyhow::bail!(
                 "unknown command `{other}`; expected migrate, bootstrap, serve, or worker"
@@ -115,7 +115,10 @@ async fn serve(
     Ok(())
 }
 
-async fn run_worker(cfg: &Config) -> anyhow::Result<()> {
+async fn run_worker(
+    cfg: &Config,
+    metrics_handle: metrics_exporter_prometheus::PrometheusHandle,
+) -> anyhow::Result<()> {
     let pool = hookrelay_store::db::connect(&cfg.database_url).await?;
     let sender = Sender::new(SenderConfig {
         allow_private_targets: cfg.allow_private_targets,
@@ -131,6 +134,8 @@ async fn run_worker(cfg: &Config) -> anyhow::Result<()> {
         },
     );
 
+    tokio::spawn(serve_metrics(metrics_handle, cfg.metrics_addr));
+
     let token = CancellationToken::new();
     let shutdown_token = token.clone();
     tokio::spawn(async move {
@@ -141,6 +146,31 @@ async fn run_worker(cfg: &Config) -> anyhow::Result<()> {
     worker.run(token).await;
 
     Ok(())
+}
+
+async fn serve_metrics(
+    handle: metrics_exporter_prometheus::PrometheusHandle,
+    addr: std::net::SocketAddr,
+) {
+    let app = axum::Router::new().route(
+        "/metrics",
+        axum::routing::get(move || {
+            let handle = handle.clone();
+
+            async move { handle.render() }
+        }),
+    );
+
+    match tokio::net::TcpListener::bind(addr).await {
+        Ok(listener) => {
+            tracing::info!(addr = %addr, "worker metrics listening");
+
+            if let Err(error) = axum::serve(listener, app).await {
+                tracing::error!(error = %error, "metrics server stopped");
+            }
+        }
+        Err(error) => tracing::error!(addr = %addr, error = %error, "cannot bind metrics address"),
+    }
 }
 
 async fn build_limiter(redis_url: &str) -> hookrelay_web::rate_limit::RateLimiter {

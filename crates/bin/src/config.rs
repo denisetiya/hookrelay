@@ -21,6 +21,7 @@ pub struct Config {
     pub redis_url: String,
     pub session_secret: String,
     pub bind_addr: SocketAddr,
+    pub metrics_addr: SocketAddr,
     pub log_format: LogFormat,
     pub allow_private_targets: bool,
 }
@@ -47,6 +48,14 @@ impl Config {
             .unwrap_or("127.0.0.1:8090")
             .parse()
             .map_err(|_| ConfigError::Invalid { key: "BIND_ADDR" })?;
+        let metrics_addr = vars
+            .get("METRICS_ADDR")
+            .map(String::as_str)
+            .unwrap_or("127.0.0.1:9090")
+            .parse()
+            .map_err(|_| ConfigError::Invalid {
+                key: "METRICS_ADDR",
+            })?;
 
         let session_secret = required("HOOKRELAY_SESSION_SECRET")?;
         if session_secret.len() < 32 {
@@ -60,6 +69,7 @@ impl Config {
             redis_url: required("REDIS_URL")?,
             session_secret,
             bind_addr,
+            metrics_addr,
             log_format: if vars.get("LOG_FORMAT").map(String::as_str) == Some("json") {
                 LogFormat::Json
             } else {
@@ -96,6 +106,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(cfg.bind_addr, "127.0.0.1:8090".parse().unwrap());
+        assert_eq!(cfg.metrics_addr, "127.0.0.1:9090".parse().unwrap());
         assert!(!cfg.allow_private_targets);
         assert_eq!(cfg.log_format, LogFormat::Pretty);
     }

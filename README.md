@@ -15,6 +15,7 @@ delivery log with replay.
 - Per-key rate limiting
 - Dashboard for endpoints, events, deliveries, and replay
 - Prometheus metrics and readiness checks
+- Worker metrics served on a separate address, since each worker is its own process
 
 ## Stack
 
@@ -124,6 +125,8 @@ for TLS. The API is exposed on `:8090`; Caddy fronts the domain.
 
 ## Operational notes
 
+- The API exposes `/metrics`. Workers expose their own metrics on `METRICS_ADDR`
+  (default `127.0.0.1:9090`) because counters live in the worker process.
 - Rate limiting fails open when Redis is down; ingest availability is preferred
   over strict limits, and the path is logged.
 - The dashboard session cookie is HMAC signed, HTTP-only, and expires after a

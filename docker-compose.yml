@@ -58,10 +58,20 @@ services:
   worker-1:
     <<: *app
     command: ["worker", "--id", "worker-1"]
+    environment:
+      <<: *app-env
+      METRICS_ADDR: 0.0.0.0:9091
+    ports:
+      - "9091:9091"
 
   worker-2:
     <<: *app
     command: ["worker", "--id", "worker-2"]
+    environment:
+      <<: *app-env
+      METRICS_ADDR: 0.0.0.0:9092
+    ports:
+      - "9092:9092"
 
   caddy:
     image: caddy:2-alpine
