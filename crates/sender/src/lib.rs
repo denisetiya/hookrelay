@@ -22,6 +22,7 @@ pub enum SenderError {
 pub struct SendRequest<'a> {
     pub url: &'a str,
     pub secret: &'a [u8],
+    pub secret_previous: Option<&'a [u8]>,
     pub delivery_id: uuid::Uuid,
     pub event_id: uuid::Uuid,
     pub attempt: i16,

@@ -129,10 +129,21 @@ impl Worker {
                 let body =
                     serde_json::to_vec(&item.payload).expect("serde_json::Value is serializable");
 
+                let rotated_recently = item.secret_rotated_at.is_some_and(|rotated_at| {
+                    Utc::now().signed_duration_since(rotated_at)
+                        < chrono::Duration::hours(24)
+                });
+                let previous_secret = if rotated_recently {
+                    item.secret_previous.as_deref()
+                } else {
+                    None
+                };
+
                 let report = sender
                     .send(SendRequest {
                         url: &item.url,
                         secret: &item.secret_current,
+                        secret_previous: previous_secret,
                         delivery_id: item.delivery_id,
                         event_id: item.event_id,
                         attempt: item.attempt,

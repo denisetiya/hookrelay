@@ -5,6 +5,7 @@ use uuid::Uuid;
 use crate::{SendRequest, SenderError};
 
 const SIGNATURE_HEADER: &str = "x-hookrelay-signature";
+const PREVIOUS_SIGNATURE_HEADER: &str = "x-hookrelay-signature-previous";
 const DELIVERY_HEADER: &str = "x-hookrelay-id";
 const EVENT_HEADER: &str = "x-hookrelay-event";
 const ATTEMPT_HEADER: &str = "x-hookrelay-attempt";
@@ -17,6 +18,11 @@ pub(crate) fn build(request: &SendRequest<'_>) -> Result<HeaderMap, SenderError>
     let mut headers = HeaderMap::new();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     insert(&mut headers, SIGNATURE_HEADER, &signature)?;
+
+    if let Some(previous) = request.secret_previous {
+        let signature = hookrelay_core::signature::sign(previous, timestamp, request.body);
+        insert(&mut headers, PREVIOUS_SIGNATURE_HEADER, &signature)?;
+    }
     insert(
         &mut headers,
         DELIVERY_HEADER,

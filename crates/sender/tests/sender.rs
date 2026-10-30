@@ -117,6 +117,7 @@ async fn send(sender: &Sender, url: &str) -> SendReport {
         .send(SendRequest {
             url,
             secret: SECRET,
+            secret_previous: None,
             delivery_id,
             event_id: Uuid::now_v7(),
             attempt: 1,
@@ -157,6 +158,41 @@ async fn signs_request_and_sends_metadata_headers() {
     assert!(headers.get("x-hookrelay-id").is_some());
     assert!(headers.get("x-hookrelay-event").is_some());
     assert!(headers.get("idempotency-key").is_some());
+}
+
+#[tokio::test]
+async fn sends_previous_signature_during_rotation() {
+    let (url, seen) = spawn(MockConfig::default()).await;
+    let sender = sender(true, Duration::from_secs(2), 1024);
+    let previous = b"fedcba9876543210fedcba9876543210";
+
+    sender
+        .send(SendRequest {
+            url: &url,
+            secret: SECRET,
+            secret_previous: Some(previous),
+            delivery_id: Uuid::now_v7(),
+            event_id: Uuid::now_v7(),
+            attempt: 1,
+            body: BODY,
+        })
+        .await;
+
+    let seen = seen.lock().await;
+    let headers = &seen[0].headers;
+    let current = headers
+        .get("x-hookrelay-signature")
+        .unwrap()
+        .to_str()
+        .unwrap();
+    let old = headers
+        .get("x-hookrelay-signature-previous")
+        .unwrap()
+        .to_str()
+        .unwrap();
+
+    hookrelay_core::signature::verify(SECRET, current, BODY, chrono::Utc::now()).unwrap();
+    hookrelay_core::signature::verify(previous, old, BODY, chrono::Utc::now()).unwrap();
 }
 
 #[tokio::test]
