@@ -154,11 +154,12 @@ async fn replay_redirects_to_the_new_delivery() {
         .unwrap()
         .to_str()
         .unwrap();
-    let replayed: Option<Uuid> = sqlx::query_scalar("select replay_of from deliveries where id = $1")
-        .bind(uuid::Uuid::parse_str(location.trim_start_matches("/deliveries/")).unwrap())
-        .fetch_optional(&db.pool)
-        .await
-        .unwrap();
+    let replayed: Option<Uuid> =
+        sqlx::query_scalar("select replay_of from deliveries where id = $1")
+            .bind(uuid::Uuid::parse_str(location.trim_start_matches("/deliveries/")).unwrap())
+            .fetch_optional(&db.pool)
+            .await
+            .unwrap();
 
     assert_eq!(replayed, Some(delivery_id));
 }

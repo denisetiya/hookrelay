@@ -26,6 +26,15 @@ pub struct EventResponse {
     pub created_at: DateTime<Utc>,
 }
 
+#[derive(Serialize)]
+pub struct EventDetailResponse {
+    pub id: Uuid,
+    #[serde(rename = "type")]
+    pub event_type: String,
+    pub payload: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+}
+
 pub async fn create(
     State(state): State<AppState>,
     TenantId(tenant_id): TenantId,
@@ -87,14 +96,15 @@ pub async fn show(
     State(state): State<AppState>,
     TenantId(tenant_id): TenantId,
     Path(id): Path<Uuid>,
-) -> Result<Json<EventResponse>, AppError> {
+) -> Result<Json<EventDetailResponse>, AppError> {
     let event = hookrelay_store::events::find(&state.pool, tenant_id, id)
         .await?
         .ok_or(AppError::NotFound)?;
 
-    Ok(Json(EventResponse {
+    Ok(Json(EventDetailResponse {
         id: event.id,
         event_type: event.event_type,
+        payload: event.payload,
         created_at: event.created_at,
     }))
 }
