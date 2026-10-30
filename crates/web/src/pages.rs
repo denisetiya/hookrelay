@@ -92,6 +92,7 @@ struct LoginPage {
 #[derive(Template)]
 #[template(path = "overview.html")]
 struct OverviewPage {
+    section: &'static str,
     counts: CountsView,
     recent: Vec<DeliveryView>,
 }
@@ -99,6 +100,7 @@ struct OverviewPage {
 #[derive(Template)]
 #[template(path = "endpoints.html")]
 struct EndpointsPage {
+    section: &'static str,
     endpoints: Vec<EndpointView>,
     secret: Option<String>,
     error: Option<String>,
@@ -107,12 +109,14 @@ struct EndpointsPage {
 #[derive(Template)]
 #[template(path = "events.html")]
 struct EventsPage {
+    section: &'static str,
     events: Vec<EventView>,
 }
 
 #[derive(Template)]
 #[template(path = "event_detail.html")]
 struct EventDetailPage {
+    section: &'static str,
     event: EventView,
     payload: String,
 }
@@ -120,6 +124,7 @@ struct EventDetailPage {
 #[derive(Template)]
 #[template(path = "deliveries.html")]
 struct DeliveriesPage {
+    section: &'static str,
     deliveries: Vec<DeliveryView>,
     status: String,
 }
@@ -127,6 +132,7 @@ struct DeliveriesPage {
 #[derive(Template)]
 #[template(path = "delivery_detail.html")]
 struct DeliveryDetailPage {
+    section: &'static str,
     delivery: DeliveryView,
     attempts: Vec<AttemptView>,
     payload: String,
@@ -191,6 +197,7 @@ async fn endpoints_page(
         .map_err(store_error)?;
 
     render(EndpointsPage {
+        section: "endpoints",
         endpoints: endpoint_views(endpoints),
         secret,
         error,
@@ -290,6 +297,7 @@ pub async fn overview(
     .map_err(store_error)?;
 
     render(OverviewPage {
+        section: "overview",
         counts: CountsView {
             total: counts.total,
             dead: counts.dead,
@@ -419,6 +427,7 @@ pub async fn events(
         .map_err(store_error)?;
 
     render(EventsPage {
+        section: "events",
         events: events
             .into_iter()
             .map(|event| EventView {
@@ -443,6 +452,7 @@ pub async fn event_detail(
     let payload = serde_json::to_string_pretty(&event.payload).unwrap_or_default();
 
     render(EventDetailPage {
+        section: "events",
         event: EventView {
             id: event.id.to_string(),
             event_type: event.event_type,
@@ -481,6 +491,7 @@ pub async fn deliveries(
     .map_err(store_error)?;
 
     render(DeliveriesPage {
+        section: "deliveries",
         deliveries: deliveries.into_iter().map(Into::into).collect(),
         status,
     })
@@ -499,6 +510,7 @@ pub async fn delivery_detail(
     let payload = serde_json::to_string_pretty(&detail.payload).unwrap_or_default();
 
     render(DeliveryDetailPage {
+        section: "deliveries",
         delivery: detail.delivery.into(),
         attempts: detail
             .attempts
@@ -533,6 +545,7 @@ pub async fn dead(
     .map_err(store_error)?;
 
     render(DeliveriesPage {
+        section: "dead",
         deliveries: deliveries.into_iter().map(Into::into).collect(),
         status: "dead".to_owned(),
     })
@@ -552,6 +565,22 @@ pub async fn replay_partial(
     render(DeliveryRowTemplate {
         row: replayed.into(),
     })
+}
+
+pub async fn replay_redirect(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+) -> Response {
+    let session = match session_of(&state, &headers) {
+        Ok(session) => session,
+        Err(response) => return response,
+    };
+
+    match hookrelay_store::deliveries::replay(&state.pool, session.tenant_id, id).await {
+        Ok(replayed) => Redirect::to(&format!("/deliveries/{}", replayed.id)).into_response(),
+        Err(error) => (StatusCode::CONFLICT, error.to_string()).into_response(),
+    }
 }
 
 pub async fn htmx() -> impl IntoResponse {

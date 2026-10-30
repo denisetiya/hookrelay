@@ -63,6 +63,7 @@ pub fn router(state: AppState) -> Router {
         .route("/events/{id}", get(pages::event_detail))
         .route("/deliveries", get(pages::deliveries))
         .route("/deliveries/{id}", get(pages::delivery_detail))
+        .route("/deliveries/{id}/replay", post(pages::replay_redirect))
         .route("/dead", get(pages::dead))
         .route(
             "/partials/deliveries/{id}/replay",

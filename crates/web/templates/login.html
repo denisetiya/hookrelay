@@ -2,18 +2,23 @@
 {% block title %}Sign in | Hookrelay{% endblock %}
 {% block nav %}{% endblock %}
 {% block content %}
-<h1>Sign in</h1>
-<p class="muted">Use an API key created with <code>webhookd bootstrap</code>.</p>
+<div class="auth">
+  <div class="auth-card">
+    <p class="eyebrow">Hookrelay</p>
+    <h1>Sign in</h1>
+    <p class="lede">Use an API key created with <code>webhookd bootstrap</code>. The key is stored in an HTTP-only session cookie.</p>
 
-{% if let Some(message) = error %}
-<div class="alert error">{{ message }}</div>
-{% endif %}
+    {% if let Some(message) = error %}
+    <div class="callout error" role="alert">{{ message }}</div>
+    {% endif %}
 
-<form method="post" action="/login">
-  <div class="field">
-    <label for="api_key">API key</label>
-    <input id="api_key" name="api_key" type="password" required autocomplete="off" placeholder="hr_live_...">
+    <form method="post" action="/login">
+      <div class="field">
+        <label for="api_key">API key</label>
+        <input id="api_key" name="api_key" type="password" required autocomplete="off" placeholder="hr_live_...">
+      </div>
+      <button class="primary" type="submit">Sign in</button>
+    </form>
   </div>
-  <button class="primary" type="submit">Sign in</button>
-</form>
+</div>
 {% endblock %}

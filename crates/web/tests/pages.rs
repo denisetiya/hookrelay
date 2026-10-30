@@ -4,6 +4,7 @@ use axum::Router;
 use axum::body::{Body, to_bytes};
 use axum::http::{Request, StatusCode, header};
 use tower::ServiceExt;
+use uuid::Uuid;
 
 async fn get(app: &Router, path: &str, cookie: Option<&str>) -> (StatusCode, String) {
     let mut request = Request::builder().method("GET").uri(path);
@@ -117,4 +118,47 @@ async fn every_nav_link_resolves() {
             "path {path} contains an em dash"
         );
     }
+}
+
+#[tokio::test]
+async fn replay_redirects_to_the_new_delivery() {
+    let db = support::test_db().await;
+    let (tenant_id, _) = support::seed_key(&db.pool).await;
+    let delivery_id = support::seed_delivery(&db.pool, tenant_id).await;
+
+    sqlx::query("update deliveries set status = 'dead', completed_at = now() where id = $1")
+        .bind(delivery_id)
+        .execute(&db.pool)
+        .await
+        .unwrap();
+
+    let app = support::app(db.pool.clone());
+    let cookie = support::session_cookie(tenant_id);
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/deliveries/{delivery_id}/replay"))
+                .header(header::COOKIE, cookie)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+
+    let location = response
+        .headers()
+        .get(header::LOCATION)
+        .unwrap()
+        .to_str()
+        .unwrap();
+    let replayed: Option<Uuid> = sqlx::query_scalar("select replay_of from deliveries where id = $1")
+        .bind(uuid::Uuid::parse_str(location.trim_start_matches("/deliveries/")).unwrap())
+        .fetch_optional(&db.pool)
+        .await
+        .unwrap();
+
+    assert_eq!(replayed, Some(delivery_id));
 }

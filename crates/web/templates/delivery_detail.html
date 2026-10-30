@@ -2,37 +2,58 @@
 {% block title %}Delivery {{ delivery.id }} | Hookrelay{% endblock %}
 {% block content %}
 <p><a href="/deliveries">&larr; All deliveries</a></p>
-<h1>{{ delivery.event_type }}</h1>
-<p class="muted">
-  <span class="badge {{ delivery.status }}">{{ delivery.status }}</span>
-  attempt {{ delivery.attempt }},
-  created {{ delivery.created_at }},
-  endpoint <code>{{ delivery.endpoint_url }}</code>
-</p>
-{% if delivery.last_status_code.is_some() %}
-<p>Last response: <strong>{{ delivery.last_status_code.unwrap() }}</strong></p>
+
+<div class="page-head">
+  <div>
+    <h1>{{ delivery.event_type }}</h1>
+    <p class="meta">
+      <span class="status {{ delivery.status }}"><span class="dot"></span>{{ delivery.status }}</span>
+      <span>attempt {{ delivery.attempt }}</span>
+      <span>{{ delivery.created_at }}</span>
+      <code>{{ delivery.id }}</code>
+    </p>
+  </div>
+  {% if delivery.status == "dead" || delivery.status == "succeeded" %}
+  <form method="post" action="/deliveries/{{ delivery.id }}/replay">
+    <button class="primary" type="submit">Replay delivery</button>
+  </form>
+  {% endif %}
+</div>
+
+<p class="lede" style="overflow-wrap:anywhere"><code>{{ delivery.endpoint_url }}</code></p>
+{% if let Some(code) = delivery.last_status_code %}
+<p class="muted">Last response: HTTP {{ code }}</p>
 {% endif %}
 
-<h2>Attempts</h2>
-{% if attempts.is_empty() %}
-<p class="muted">No attempts recorded yet.</p>
-{% else %}
-<table>
-  <thead><tr><th>#</th><th>Started</th><th>HTTP</th><th>Latency</th><th>Error</th></tr></thead>
-  <tbody>
-    {% for attempt in attempts %}
-    <tr>
-      <td data-label="#">{{ attempt.attempt_no }}</td>
-      <td data-label="Started">{{ attempt.started_at }}</td>
-      <td data-label="HTTP">{% if let Some(code) = attempt.status_code %}{{ code }}{% else %}-{% endif %}</td>
-      <td data-label="Latency">{% if let Some(ms) = attempt.latency_ms %}{{ ms }} ms{% else %}-{% endif %}</td>
-      <td data-label="Error">{% if let Some(error) = attempt.error %}{{ error }}{% else %}-{% endif %}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-{% endif %}
+<div class="detail-grid">
+  <section>
+    <h2 style="margin-top:0">Attempts</h2>
+    {% if attempts.is_empty() %}
+    <div class="empty">
+      <strong>No attempts recorded yet.</strong>
+      The worker will record each try here as soon as it claims this delivery.
+    </div>
+    {% else %}
+    <table>
+      <thead><tr><th>#</th><th>Started</th><th>HTTP</th><th>Latency</th><th>Error</th></tr></thead>
+      <tbody>
+        {% for attempt in attempts %}
+        <tr>
+          <td data-label="#">{{ attempt.attempt_no }}</td>
+          <td data-label="Started">{{ attempt.started_at }}</td>
+          <td data-label="HTTP">{% if let Some(code) = attempt.status_code %}{{ code }}{% else %}<span class="muted">none</span>{% endif %}</td>
+          <td data-label="Latency">{% if let Some(ms) = attempt.latency_ms %}{{ ms }} ms{% else %}<span class="muted">none</span>{% endif %}</td>
+          <td data-label="Error">{% if let Some(error) = attempt.error %}{{ error }}{% else %}<span class="muted">none</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </section>
 
-<h2>Event payload</h2>
-<pre>{{ payload }}</pre>
+  <section>
+    <h2 style="margin-top:0">Event payload</h2>
+    <pre>{{ payload }}</pre>
+  </section>
+</div>
 {% endblock %}

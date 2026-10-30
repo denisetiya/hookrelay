@@ -1,17 +1,26 @@
 {% extends "base.html" %}
 {% block title %}Events | Hookrelay{% endblock %}
 {% block content %}
-<h1>Events</h1>
+<div class="page-head">
+  <div>
+    <h1>Events</h1>
+    <p class="lede">Accepted events and the payload that was fanned out to endpoints.</p>
+  </div>
+</div>
+
 {% if events.is_empty() %}
-<p class="muted">No events yet. Send one with <code>POST /v1/events</code>.</p>
+<div class="empty">
+  <strong>No events yet.</strong>
+  Send one with <code>POST /v1/events</code>, optionally with an <code>Idempotency-Key</code> header.
+</div>
 {% else %}
 <table>
-  <thead><tr><th>Type</th><th>ID</th><th>Created</th></tr></thead>
+  <thead><tr><th>Type</th><th>Event ID</th><th>Created</th></tr></thead>
   <tbody>
     {% for event in events %}
     <tr>
       <td data-label="Type"><a href="/events/{{ event.id }}">{{ event.event_type }}</a></td>
-      <td data-label="ID"><code>{{ event.id }}</code></td>
+      <td data-label="Event ID"><code>{{ event.id }}</code></td>
       <td data-label="Created">{{ event.created_at }}</td>
     </tr>
     {% endfor %}

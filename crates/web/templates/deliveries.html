@@ -1,23 +1,27 @@
 {% extends "base.html" %}
 {% block title %}Deliveries | Hookrelay{% endblock %}
 {% block content %}
-<h1>Deliveries{% if status == "dead" %} (dead letters){% endif %}</h1>
+<div class="page-head">
+  <div>
+    <h1>{% if status == "dead" %}Dead letters{% else %}Deliveries{% endif %}</h1>
+    <p class="lede">Every attempt is recorded. Finished deliveries can be replayed without losing the original history.</p>
+  </div>
+</div>
 
-<form method="get" action="/deliveries" class="inline">
-  <label for="status" class="muted">Status</label>
-  <select id="status" name="status">
-    <option value="" {% if status.is_empty() %}selected{% endif %}>All</option>
-    <option value="pending" {% if status == "pending" %}selected{% endif %}>Pending</option>
-    <option value="in_flight" {% if status == "in_flight" %}selected{% endif %}>In flight</option>
-    <option value="retrying" {% if status == "retrying" %}selected{% endif %}>Retrying</option>
-    <option value="succeeded" {% if status == "succeeded" %}selected{% endif %}>Succeeded</option>
-    <option value="dead" {% if status == "dead" %}selected{% endif %}>Dead</option>
-  </select>
-  <button type="submit">Filter</button>
-</form>
+<nav class="tabs" aria-label="Filter by status">
+  <a href="/deliveries" {% if status.is_empty() %}aria-current="page"{% endif %}>All</a>
+  <a href="/deliveries?status=pending" {% if status == "pending" %}aria-current="page"{% endif %}>Pending</a>
+  <a href="/deliveries?status=in_flight" {% if status == "in_flight" %}aria-current="page"{% endif %}>In flight</a>
+  <a href="/deliveries?status=retrying" {% if status == "retrying" %}aria-current="page"{% endif %}>Retrying</a>
+  <a href="/deliveries?status=succeeded" {% if status == "succeeded" %}aria-current="page"{% endif %}>Succeeded</a>
+  <a href="/deliveries?status=dead" {% if status == "dead" %}aria-current="page"{% endif %}>Dead</a>
+</nav>
 
 {% if deliveries.is_empty() %}
-<p class="muted">No deliveries yet.</p>
+<div class="empty">
+  <strong>No deliveries{% if !status.is_empty() %} with status {{ status }}{% endif %} yet.</strong>
+  {% if status == "dead" %}Failures land here after the last retry. Nothing needs a replay.{% else %}Publish an event and the fan-out will appear here.{% endif %}
+</div>
 {% else %}
 <table>
   <thead><tr><th>Event</th><th>Endpoint</th><th>Status</th><th>Attempt</th><th>HTTP</th><th>Actions</th></tr></thead>

@@ -1,12 +1,12 @@
 <tr id="delivery-{{ row.id }}">
   <td data-label="Event"><a href="/deliveries/{{ row.id }}">{{ row.event_type }}</a></td>
-  <td data-label="Endpoint">{{ row.endpoint_url }}</td>
-  <td data-label="Status"><span class="badge {{ row.status }}">{{ row.status }}</span></td>
+  <td data-label="Endpoint" class="url">{{ row.endpoint_url }}</td>
+  <td data-label="Status"><span class="status {{ row.status }}"><span class="dot"></span>{{ row.status }}</span></td>
   <td data-label="Attempt">{{ row.attempt }}</td>
-  <td data-label="HTTP">{% if let Some(code) = row.last_status_code %}{{ code }}{% else %}-{% endif %}</td>
+  <td data-label="HTTP">{% if let Some(code) = row.last_status_code %}{{ code }}{% else %}<span class="muted">not sent</span>{% endif %}</td>
   <td data-label="Actions">
     {% if row.status == "dead" || row.status == "succeeded" %}
-    <button hx-post="/partials/deliveries/{{ row.id }}/replay" hx-target="closest tr" hx-swap="outerHTML">Replay</button>
+    <button class="small" hx-post="/partials/deliveries/{{ row.id }}/replay" hx-target="closest tr" hx-swap="outerHTML">Replay</button>
     {% endif %}
   </td>
 </tr>

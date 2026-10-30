@@ -1,17 +1,39 @@
 {% extends "base.html" %}
 {% block title %}Overview | Hookrelay{% endblock %}
 {% block content %}
-<h1>Overview</h1>
-
-<div class="grid">
-  <div class="card"><span class="muted">Deliveries</span><strong>{{ counts.total }}</strong></div>
-  <div class="card"><span class="muted">Retrying</span><strong>{{ counts.retrying }}</strong></div>
-  <div class="card"><span class="muted">Dead</span><strong>{{ counts.dead }}</strong></div>
+<div class="page-head">
+  <div>
+    <h1>Overview</h1>
+    <p class="lede">Delivery health across every endpoint. Failures surface here first.</p>
+  </div>
 </div>
+
+<section class="attention">
+  <div>
+    <p class="eyebrow">Needs attention</p>
+    {% if counts.dead > 0 %}
+    <p class="count">{{ counts.dead }}<small>dead</small></p>
+    <p class="support">{{ counts.retrying }} retrying now. Review the dead letters to inspect payloads and replay.</p>
+    {% else if counts.retrying > 0 %}
+    <p class="count">{{ counts.retrying }}<small>retrying</small></p>
+    <p class="support">No dead letters. These deliveries are waiting for their next attempt.</p>
+    {% else %}
+    <p class="count">0<small>dead</small></p>
+    <p class="support">No delivery needs attention right now. {{ counts.total }} deliveries recorded.</p>
+    {% endif %}
+  </div>
+  <div class="actions">
+    <a class="button primary" href="/dead">Review dead letters</a>
+    <a class="button" href="/deliveries">All deliveries</a>
+  </div>
+</section>
 
 <h2>Recent deliveries</h2>
 {% if recent.is_empty() %}
-<p class="muted">No deliveries yet. Publish an event to get started.</p>
+<div class="empty">
+  <strong>No deliveries yet.</strong>
+  Publish an event with <code>POST /v1/events</code> and it will appear here with its attempt history.
+</div>
 {% else %}
 <table>
   <thead><tr><th>Event</th><th>Endpoint</th><th>Status</th><th>Attempt</th><th>Created</th></tr></thead>
@@ -19,8 +41,8 @@
     {% for row in recent %}
     <tr>
       <td data-label="Event"><a href="/deliveries/{{ row.id }}">{{ row.event_type }}</a></td>
-      <td data-label="Endpoint">{{ row.endpoint_url }}</td>
-      <td data-label="Status"><span class="badge {{ row.status }}">{{ row.status }}</span></td>
+      <td data-label="Endpoint" class="url">{{ row.endpoint_url }}</td>
+      <td data-label="Status"><span class="status {{ row.status }}"><span class="dot"></span>{{ row.status }}</span></td>
       <td data-label="Attempt">{{ row.attempt }}</td>
       <td data-label="Created">{{ row.created_at }}</td>
     </tr>
